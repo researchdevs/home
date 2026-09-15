@@ -1,0 +1,769 @@
+PL/SQL / DBMS LAB ASSIGNMENT â€“ COMPLETE DAY-WISE SOLUTION
+Oracle SQL / PL/SQL
+------------------------------------------------------------
+
+NOTES
+1. Run the sections in order in an Oracle environment.
+2. Use SET SERVEROUTPUT ON for PL/SQL output.
+3. The sample EMP table below contains more than 5 records and is used by Days 1, 2, 5, 6 and 7.
+4. If your lab already has EMP/DEPT tables, skip the CREATE/INSERT sections and adapt column names.
+
+============================================================
+DAY 1 â€“ BASIC SQL SELECT
+============================================================
+
+1(a). CREATE EMP TABLE
+
+CREATE TABLE emp (
+    emp_id       NUMBER(5) PRIMARY KEY,
+    emp_name     VARCHAR2(30),
+    hire_date    DATE,
+    dept_id      NUMBER(3),
+    salary       NUMBER(10,2),
+    commission   NUMBER(10,2),
+    manager_id   NUMBER(5),
+    job          VARCHAR2(20)
+);
+
+INSERT INTO emp VALUES (100, 'John',    DATE '2020-01-10', 10, 25000, NULL,  NULL, 'PRESIDENT');
+INSERT INTO emp VALUES (101, 'Alice',   DATE '2005-03-15', 20, 32000, 3000,  100,  'MANAGER');
+INSERT INTO emp VALUES (102, 'James',   DATE '2011-06-20', 20, 28000, NULL,  101,  'ANALYST');
+INSERT INTO emp VALUES (103, 'Mary',    DATE '2009-11-05', 30, 45000, 5000,  100,  'MANAGER');
+INSERT INTO emp VALUES (104, 'David',   DATE '2015-02-12', 30, 18000, NULL,  103,  'CLERK');
+INSERT INTO emp VALUES (105, 'Thomas',  DATE '2008-08-25', 50, 52000, 7000,  100,  'MANAGER');
+INSERT INTO emp VALUES (106, 'Laura',   DATE '2012-04-18', 50, 26000, NULL,  105,  'ANALYST');
+INSERT INTO emp VALUES (107, 'Robert',  DATE '2004-12-01', 50, 22000, NULL,  105,  'CLERK');
+INSERT INTO emp VALUES (108, 'Susan',   DATE '2018-07-30', 80, 15000, 1500,  105,  'CLERK');
+INSERT INTO emp VALUES (109, 'Michael', DATE '2021-09-10', 80, 38000, 2500,  105,  'MANAGER');
+INSERT INTO emp VALUES (110, 'Blake',   DATE '2006-05-22', 20, 10000, NULL,  101,  'CLERK');
+INSERT INTO emp VALUES (111, 'Clark',   DATE '2007-10-14', 30, 12000, NULL,  103,  'CLERK');
+INSERT INTO emp VALUES (112, 'Harry',   DATE '2013-03-03', 80, 27000, NULL,  109,  'ANALYST');
+INSERT INTO emp VALUES (113, 'Anita',   DATE '2022-01-19', 90, 19000, NULL,  100,  'CLERK');
+
+COMMIT;
+
+1(b). SHOW STRUCTURE AND ALL DATA
+
+DESC emp;
+
+SELECT * FROM emp;
+
+1(c). Employee number, name, department and hire date; provide STARTDATE alias.
+
+SELECT emp_id AS employee_number,
+       emp_name AS employee_name,
+       dept_id,
+       hire_date AS startdate
+FROM emp;
+
+1(d). Concatenate employee name and department ID. Label as Employee and Title.
+
+SELECT emp_name || ', ' || dept_id AS "Employee and Title"
+FROM emp;
+
+1(e). Annual salary
+
+SELECT emp_name, salary, salary * 12 AS annual_salary
+FROM emp;
+
+
+============================================================
+DAY 1 â€“ HOME ASSIGNMENT
+============================================================
+
+1(a). Employee number, salary and salary increased by 15%.
+
+SELECT emp_id,
+       salary,
+       ROUND(salary * 1.15, 2) AS new_salary
+FROM emp;
+
+1(b). Add increment column.
+
+SELECT emp_id,
+       salary,
+       ROUND(salary * 1.15, 2) AS new_salary,
+       ROUND(salary * 1.15 - salary, 2) AS increment
+FROM emp;
+
+2. Dream Salaries.
+
+SELECT emp_name || ' earns ' || salary ||
+       ' monthly but ' || (salary * 3) || ' annually' AS "Dream Salaries"
+FROM emp;
+
+3(a). Salary increased by 15%, whole number, label New Salary.
+
+SELECT emp_id,
+       emp_name,
+       salary,
+       ROUND(salary * 1.15) AS "New Salary"
+FROM emp;
+
+3(b). Add increment.
+
+SELECT emp_id,
+       emp_name,
+       salary,
+       ROUND(salary * 1.15) AS "New Salary",
+       ROUND(salary * 1.15 - salary) AS increment
+FROM emp;
+
+4. Total monthly salary = salary + commission for employees whose names start with A.
+
+SELECT emp_name,
+       salary,
+       NVL(commission, 0) AS commission,
+       salary + NVL(commission, 0) AS total_monthly_salary
+FROM emp
+WHERE UPPER(emp_name) LIKE 'A%';
+
+
+============================================================
+DAY 1 â€“ PL/SQL
+============================================================
+
+1. Debit Rs. 2000 if minimum balance after debit is Rs. 500.
+
+CREATE TABLE accounts (
+    account_id VARCHAR2(10) PRIMARY KEY,
+    name       VARCHAR2(30),
+    balance    NUMBER(10,2)
+);
+
+INSERT INTO accounts VALUES ('AC001', 'ANUJ', 5000);
+INSERT INTO accounts VALUES ('AC002', 'MITA', 2400);
+COMMIT;
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    v_account_id accounts.account_id%TYPE := '&account_id';
+    v_balance    accounts.balance%TYPE;
+    v_debit      CONSTANT NUMBER := 2000;
+BEGIN
+    SELECT balance
+    INTO v_balance
+    FROM accounts
+    WHERE account_id = v_account_id
+    FOR UPDATE;
+
+    IF v_balance - v_debit >= 500 THEN
+        UPDATE accounts
+        SET balance = balance - v_debit
+        WHERE account_id = v_account_id;
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Debit successful.');
+        DBMS_OUTPUT.PUT_LINE('New balance = ' || (v_balance - v_debit));
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Debit not allowed. Minimum balance of Rs. 500 must be maintained.');
+    END IF;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Account not found.');
+END;
+/
+
+2. Calculate area for radius 3 to 7 and store in AREA table.
+
+CREATE TABLE area (
+    radius NUMBER(5,2),
+    area   NUMBER(10,2)
+);
+
+DECLARE
+    v_area NUMBER;
+BEGIN
+    FOR r IN 3..7 LOOP
+        v_area := ACOS(-1) * r * r;
+        INSERT INTO area VALUES (r, ROUND(v_area, 2));
+    END LOOP;
+    COMMIT;
+END;
+/
+
+SELECT * FROM area;
+
+3. Factorial of a number entered by user.
+
+DECLARE
+    v_n    NUMBER := &n;
+    v_fact NUMBER := 1;
+BEGIN
+    IF v_n < 0 OR v_n != TRUNC(v_n) THEN
+        DBMS_OUTPUT.PUT_LINE('Enter a non-negative integer.');
+    ELSE
+        FOR i IN 1..v_n LOOP
+            v_fact := v_fact * i;
+        END LOOP;
+        DBMS_OUTPUT.PUT_LINE('Factorial = ' || v_fact);
+    END IF;
+END;
+/
+
+4. Insert an EMP record, update Blake by 2000 and Clark by 1500.
+   If total salary exceeds 20000, undo only Blake/Clark updates.
+
+-- Example table for this exercise
+CREATE TABLE emp_plsql (
+    emp_no   VARCHAR2(10) PRIMARY KEY,
+    emp_name VARCHAR2(30),
+    sal      NUMBER(10,2)
+);
+
+INSERT INTO emp_plsql VALUES ('E001','Harry',5000);
+INSERT INTO emp_plsql VALUES ('E002','Blake',1000);
+INSERT INTO emp_plsql VALUES ('E003','Jack',5000);
+INSERT INTO emp_plsql VALUES ('E004','Clark',1000);
+COMMIT;
+
+DECLARE
+    v_total NUMBER;
+BEGIN
+    INSERT INTO emp_plsql VALUES ('E005', 'David', 5000);
+
+    SAVEPOINT before_salary_updates;
+
+    UPDATE emp_plsql
+    SET sal = sal + 2000
+    WHERE emp_name = 'Blake';
+
+    UPDATE emp_plsql
+    SET sal = sal + 1500
+    WHERE emp_name = 'Clark';
+
+    SELECT SUM(sal) INTO v_total FROM emp_plsql;
+
+    IF v_total > 20000 THEN
+        ROLLBACK TO before_salary_updates;
+        DBMS_OUTPUT.PUT_LINE('Total salary > 20000. Blake and Clark updates rolled back.');
+    ELSE
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Updates committed.');
+    END IF;
+END;
+/
+
+SELECT * FROM emp_plsql;
+
+
+============================================================
+DAY 2 â€“ RESTRICTING AND SORTING DATA
+============================================================
+
+1(a)(i). Names having both a and e.
+
+SELECT emp_name
+FROM emp
+WHERE LOWER(emp_name) LIKE '%a%'
+  AND LOWER(emp_name) LIKE '%e%';
+
+1(a)(ii). Name and department of employees without commission.
+
+SELECT emp_name, dept_id
+FROM emp
+WHERE commission IS NULL;
+
+1(a)(iii). Salary between 25000 and 42000 and department 10 or 20.
+
+SELECT emp_name AS "Employee",
+       salary AS "Monthly Salary"
+FROM emp
+WHERE salary BETWEEN 25000 AND 42000
+  AND dept_id IN (10, 20);
+
+1(b). Names starting with J, A or M; sort by name.
+
+SELECT emp_name
+FROM emp
+WHERE UPPER(emp_name) LIKE 'J%'
+   OR UPPER(emp_name) LIKE 'A%'
+   OR UPPER(emp_name) LIKE 'M%'
+ORDER BY emp_name;
+
+2. Total salary = salary + commission.
+
+SELECT emp_name,
+       salary,
+       commission,
+       salary + NVL(commission, 0) AS total_salary
+FROM emp;
+
+3. All jobs without repetitions.
+
+SELECT DISTINCT job
+FROM emp;
+
+4. Employees who joined in 2005.
+
+SELECT emp_id, emp_name, hire_date
+FROM emp
+WHERE hire_date >= DATE '2005-01-01'
+  AND hire_date <  DATE '2006-01-01';
+
+5. Experience of employees in months.
+
+SELECT emp_name,
+       TRUNC(MONTHS_BETWEEN(SYSDATE, hire_date)) AS experience_months
+FROM emp;
+
+6. EMP table with salary in descending order.
+
+SELECT *
+FROM emp
+ORDER BY salary DESC;
+
+7. Employees who joined before 01-JAN-2012.
+
+SELECT emp_id, emp_name, hire_date
+FROM emp
+WHERE hire_date < DATE '2012-01-01';
+
+8. Employees hired after 28-SEP-2020 and before 03-DEC-2022.
+
+SELECT emp_id, emp_name, hire_date
+FROM emp
+WHERE hire_date > DATE '2020-09-28'
+  AND hire_date < DATE '2022-12-03';
+
+
+============================================================
+DAY 2 â€“ HOME ASSIGNMENT
+============================================================
+
+1. Department and average salary whose average is minimum.
+
+SELECT dept_id, AVG(salary) AS avg_salary
+FROM emp
+GROUP BY dept_id
+HAVING AVG(salary) = (
+    SELECT MIN(avg_sal)
+    FROM (
+        SELECT AVG(salary) AS avg_sal
+        FROM emp
+        GROUP BY dept_id
+    )
+);
+
+2. Employees whose salary is greater than at least one employee of department 50.
+
+SELECT emp_id, emp_name, salary
+FROM emp
+WHERE salary > ANY (
+    SELECT salary
+    FROM emp
+    WHERE dept_id = 50
+);
+
+3. Employees whose salary is greater than all employees of department 50.
+
+SELECT emp_id, emp_name, salary
+FROM emp
+WHERE salary > ALL (
+    SELECT salary
+    FROM emp
+    WHERE dept_id = 50
+);
+
+
+============================================================
+DAY 3 â€“ CONSTRAINTS
+============================================================
+
+1(a). DEPART table.
+
+CREATE TABLE depart (
+    dept_id       NUMBER(5),
+    dept_name     VARCHAR2(30),
+    location_name VARCHAR2(30),
+    CONSTRAINT pk_depart PRIMARY KEY (dept_id),
+    CONSTRAINT uq_depart_name UNIQUE (dept_name)
+);
+
+1(b). EMPLOY table with named constraints.
+
+CREATE TABLE employ (
+    empid          NUMBER(5),
+    emp_name       VARCHAR2(30),
+    salary         NUMBER(10,2) NOT NULL,
+    hire_date      DATE,
+    department_no  NUMBER(5),
+    CONSTRAINT pk_employ PRIMARY KEY (empid),
+    CONSTRAINT fk_employ_depart
+        FOREIGN KEY (department_no) REFERENCES depart(dept_id),
+    CONSTRAINT ck_employ_salary CHECK (salary > 0)
+);
+
+-- At least 3 department rows
+INSERT INTO depart VALUES (10, 'EXECUTIVE', 'kolkata');
+INSERT INTO depart VALUES (20, 'SALES',     'toronto');
+INSERT INTO depart VALUES (30, 'HR',        'delhi');
+
+-- At least 5 employee rows
+INSERT INTO employ VALUES (1, 'Amit',   30000, DATE '2020-01-10', 10);
+INSERT INTO employ VALUES (2, 'Bina',   28000, DATE '2021-02-15', 20);
+INSERT INTO employ VALUES (3, 'Rahul',  35000, DATE '2019-07-20', 10);
+INSERT INTO employ VALUES (4, 'Suman',  26000, DATE '2022-03-11', 30);
+INSERT INTO employ VALUES (5, 'Neha',   32000, DATE '2023-05-18', 20);
+COMMIT;
+
+2(a). PERSON table.
+
+CREATE TABLE person (
+    person_id  NUMBER(5),
+    first_name VARCHAR2(30),
+    last_name  VARCHAR2(30),
+    phone      VARCHAR2(15),
+    CONSTRAINT pk_person PRIMARY KEY (person_id),
+    CONSTRAINT uq_person_phone UNIQUE (phone)
+);
+
+2(b). ORDERS table and foreign key.
+
+CREATE TABLE orders (
+    order_id   NUMBER(5),
+    order_date DATE,
+    p_id       NUMBER(5),
+    CONSTRAINT pk_orders PRIMARY KEY (order_id),
+    CONSTRAINT fk_orders_person
+        FOREIGN KEY (p_id) REFERENCES person(person_id)
+);
+
+INSERT INTO person VALUES (1, 'Amit', 'Sharma', '9000000001');
+INSERT INTO person VALUES (2, 'Riya', 'Das',    '9000000002');
+INSERT INTO person VALUES (3, 'Rahul','Sen',    '9000000003');
+INSERT INTO person VALUES (4, 'Neha', 'Roy',    '9000000004');
+INSERT INTO person VALUES (5, 'Suman','Paul',   '9000000005');
+
+INSERT INTO orders VALUES (101, DATE '2026-01-10', 1);
+INSERT INTO orders VALUES (102, DATE '2026-01-11', 2);
+INSERT INTO orders VALUES (103, DATE '2026-01-12', 3);
+INSERT INTO orders VALUES (104, DATE '2026-01-13', 4);
+INSERT INTO orders VALUES (105, DATE '2026-01-14', 5);
+COMMIT;
+
+3. EMP_NEW with CHECK constraints.
+
+CREATE TABLE emp_new (
+    name      VARCHAR2(30),
+    age       NUMBER(3),
+    dept_name VARCHAR2(30),
+    loc       VARCHAR2(30),
+    CONSTRAINT ck_empnew_name
+        CHECK (REGEXP_LIKE(name, '^S')),
+    CONSTRAINT ck_empnew_age
+        CHECK (age > 18),
+    CONSTRAINT ck_empnew_dept
+        CHECK (dept_name = UPPER(dept_name)),
+    CONSTRAINT ck_empnew_loc
+        CHECK (loc = LOWER(loc))
+);
+
+-- Valid examples
+INSERT INTO emp_new VALUES ('Sourav', 22, 'CSE', 'kolkata');
+INSERT INTO emp_new VALUES ('Suman',  25, 'HR',  'delhi');
+INSERT INTO emp_new VALUES ('Sneha',  23, 'SALES', 'toronto');
+COMMIT;
+
+
+DAY 3 â€“ HOME ASSIGNMENT
+------------------------------------------------------------
+
+1. EMPLOYEES table.
+
+CREATE TABLE employees (
+    empid      NUMBER(5),
+    name       VARCHAR2(30),
+    salary     NUMBER(10,2),
+    address    VARCHAR2(100),
+    hire_date  DATE,
+    mgr_no     NUMBER(5),
+    dept_name  VARCHAR2(30),
+    CONSTRAINT pk_employees PRIMARY KEY (empid),
+    CONSTRAINT fk_employees_mgr
+        FOREIGN KEY (mgr_no) REFERENCES employees(empid)
+);
+
+-- To insert the manager first:
+INSERT INTO employees VALUES
+(1, 'Thomas', 52000, 'Kolkata', DATE '2008-08-25', NULL, 'EXECUTIVE');
+
+INSERT INTO employees VALUES
+(2, 'Alice', 32000, 'Kolkata', DATE '2005-03-15', 1, 'SALES');
+
+INSERT INTO employees VALUES
+(3, 'David', 18000, 'Delhi', DATE '2015-02-12', 1, 'HR');
+
+INSERT INTO employees VALUES
+(4, 'Laura', 26000, 'Toronto', DATE '2012-04-18', 1, 'SALES');
+
+INSERT INTO employees VALUES
+(5, 'Robert', 22000, 'Kolkata', DATE '2004-12-01', 1, 'HR');
+
+COMMIT;
+
+2. TEACHER table.
+
+CREATE TABLE teacher (
+    eid        NUMBER(5),
+    name       VARCHAR2(30) NOT NULL,
+    salary     NUMBER(10,2),
+    dept_name  VARCHAR2(30),
+    CONSTRAINT pk_teacher PRIMARY KEY (eid),
+    CONSTRAINT fk_teacher_emp
+        FOREIGN KEY (eid) REFERENCES employees(empid),
+    CONSTRAINT ck_teacher_dept_upper
+        CHECK (dept_name = UPPER(dept_name))
+);
+
+
+============================================================
+DAY 4 â€“ CREATE / INSERT / UPDATE / DELETE / ALTER / MERGE
+============================================================
+
+1(a). Create EMPP.
+
+CREATE TABLE empp (
+    id      NUMBER(5),
+    ename   VARCHAR2(20),
+    dept_id VARCHAR2(5)
+);
+
+1(b). Allow employee names up to 25 characters.
+
+ALTER TABLE empp
+MODIFY (ename VARCHAR2(25));
+
+1(c). Add Commission NUMBER(2).
+
+ALTER TABLE empp
+ADD (commission NUMBER(2));
+
+1(d). Rename EMPP to EMP_OLD.
+
+RENAME empp TO emp_old;
+
+1(e). Drop EMP_OLD.
+
+DROP TABLE emp_old;
+
+2(a). Create EMP_XX and EMP_DAY4.
+
+CREATE TABLE emp_xx AS
+SELECT emp_id AS empid,
+       emp_name AS ename,
+       salary AS sal
+FROM emp;
+
+CREATE TABLE emp_day4 AS
+SELECT empid, ename, sal
+FROM emp_xx;
+
+2(b). Increase salary by Rs.1000 if salary is less than Rs.5000.
+
+UPDATE emp_day4
+SET sal = sal + 1000
+WHERE sal < 5000;
+
+2(c). Add JOB_ID and populate it.
+
+ALTER TABLE emp_day4
+ADD (job_id VARCHAR2(20));
+
+UPDATE emp_day4
+SET job_id = 'J' || empid;
+
+2(d). Increase ENAME size to 25.
+
+ALTER TABLE emp_day4
+MODIFY (ename VARCHAR2(25));
+
+2(e). Delete employees whose salary is more than Rs.10000.
+
+DELETE FROM emp_day4
+WHERE sal > 10000;
+
+COMMIT;
+
+2(f). Rename EMP_DAY4 to EMP_D4.
+
+RENAME emp_day4 TO emp_d4;
+
+
+============================================================
+DAY 5 â€“ SINGLE ROW + GROUP FUNCTIONS
+============================================================
+
+1. Number of people in each department.
+
+SELECT dept_id,
+       COUNT(*) AS number_of_people
+FROM emp
+GROUP BY dept_id
+ORDER BY dept_id;
+
+2(a). Number of managers without listing manager names.
+
+SELECT COUNT(DISTINCT manager_id) AS "Number of Managers"
+FROM emp
+WHERE manager_id IS NOT NULL;
+
+2(b). Difference between highest and lowest salaries.
+
+SELECT MAX(salary) - MIN(salary) AS "Difference"
+FROM emp;
+
+3. Manager number and salary of lowest paid employee under each manager.
+   Employees without a manager are excluded.
+
+SELECT manager_id AS manager_number,
+       MIN(salary) AS lowest_salary
+FROM emp
+WHERE manager_id IS NOT NULL
+GROUP BY manager_id
+ORDER BY lowest_salary DESC;
+
+4(a). Highest, lowest, sum and average salary, rounded.
+
+SELECT ROUND(MAX(salary)) AS maximum,
+       ROUND(MIN(salary)) AS minimum,
+       ROUND(SUM(salary)) AS sum,
+       ROUND(AVG(salary)) AS average
+FROM emp;
+
+4(b). Minimum, maximum, sum and average for each department.
+
+SELECT dept_id,
+       ROUND(MIN(salary)) AS minimum,
+       ROUND(MAX(salary)) AS maximum,
+       ROUND(SUM(salary)) AS sum,
+       ROUND(AVG(salary)) AS average
+FROM emp
+GROUP BY dept_id
+ORDER BY dept_id;
+
+5. Employee name and commission; show "no commission" for NULL.
+
+SELECT emp_name,
+       NVL(TO_CHAR(commission), 'no commission') AS commission
+FROM emp;
+
+
+============================================================
+DAY 6 â€“ JOINS
+============================================================
+
+For join questions, create DEPT table.
+
+CREATE TABLE dept (
+    dept_id   NUMBER(3) PRIMARY KEY,
+    dept_name VARCHAR2(30),
+    location  VARCHAR2(30)
+);
+
+INSERT INTO dept VALUES (10, 'Executive', 'Bangalore');
+INSERT INTO dept VALUES (20, 'Sales',     'Toronto');
+INSERT INTO dept VALUES (30, 'HR',        'Delhi');
+INSERT INTO dept VALUES (40, 'Research',  'Mumbai');
+INSERT INTO dept VALUES (50, 'Finance',   'Kolkata');
+INSERT INTO dept VALUES (80, 'Operations','Toronto');
+INSERT INTO dept VALUES (90, 'Marketing', 'Bangalore');
+COMMIT;
+
+1(a). Employee name and department name for names containing lowercase 'a'.
+
+SELECT e.emp_name, d.dept_name
+FROM emp e
+JOIN dept d ON e.dept_id = d.dept_id
+WHERE e.emp_name LIKE '%a%';
+
+1(b). Employee name, department name and location for employees earning commission.
+
+SELECT e.emp_name, d.dept_name, d.location
+FROM emp e
+JOIN dept d ON e.dept_id = d.dept_id
+WHERE e.commission IS NOT NULL;
+
+2(a). Employee number/name with manager name. Use aliases.
+
+SELECT e.emp_id AS employee_number,
+       e.emp_name AS employee_name,
+       m.emp_id AS manager_number,
+       m.emp_name AS manager_name
+FROM emp e
+JOIN emp m ON e.manager_id = m.emp_id;
+
+2(b). Include employees with no manager.
+
+SELECT e.emp_id AS employee_number,
+       e.emp_name AS employee_name,
+       m.emp_id AS manager_number,
+       m.emp_name AS manager_name
+FROM emp e
+LEFT JOIN emp m ON e.manager_id = m.emp_id;
+
+3(a). Display employees working in the same department as a given employee.
+
+-- Enter an employee ID when prompted.
+SELECT e2.emp_name,
+       e2.dept_id
+FROM emp e1
+JOIN emp e2 ON e1.dept_id = e2.dept_id
+WHERE e1.emp_id = &employee_id;
+
+3(b). Employees hired after David.
+
+SELECT emp_name, hire_date
+FROM emp
+WHERE hire_date > (
+    SELECT hire_date
+    FROM emp
+    WHERE emp_name = 'David'
+);
+
+4. Employees hired before their managers â€“ self join.
+
+SELECT e.emp_name AS employee_name,
+       e.hire_date AS employee_hire_date,
+       m.emp_name AS manager_name,
+       m.hire_date AS manager_hire_date
+FROM emp e
+JOIN emp m ON e.manager_id = m.emp_id
+WHERE e.hire_date < m.hire_date;
+
+
+DAY 6 â€“ HOME ASSIGNMENT
+------------------------------------------------------------
+
+1. Last name, department number and department name for all employees.
+
+-- This solution uses EMP_NAME as the name column.
+SELECT e.emp_name AS last_name,
+       e.dept_id AS department_number,
+       d.dept_name
+FROM emp e
+JOIN dept d ON e.dept_id = d.dept_id;
+
+2(a). Unique jobs in department 80 and location.
+
+SELECT DISTINCT e.job,
+       d.location
+FROM emp e
+JOIN dept d ON e.dept_id = d.dept_id
+WHERE e.dept_id = 80;
+
+2(b). Last name, job, department number and department name for employees in Toronto.
+
+SELECT e.emp_name AS last_name,
+       e.job,
+       e.dept_id AS department_number,
+       d.dept_name
+FROM emp e
+JOIN dept d ON e.dept_id = d.dept_id
+WHERE UPPER(d.location) = 'TORONTO';
+
+
+============================================================
+DAY 7 â€“ SUBQUERIES + CORREL
